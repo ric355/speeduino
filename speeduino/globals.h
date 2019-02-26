@@ -730,6 +730,7 @@ struct config9 {
   byte iacStepperInv : 1;  //stepper direction of travel to allow reversing. 0=normal, 1=inverted.
   byte limitTachoPulse : 1;   // whether the tacho pulse has a duration limit or 
                               //not (if not, the pulse width is equal to the dwell time)
+  byte iacCoolTime : 3; // how long to wait for the stepper to cool between steps
   
   byte tachoPulseLimit;       // the duration in ms*10 of the tacho pulse limit
   
