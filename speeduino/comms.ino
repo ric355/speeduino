@@ -486,6 +486,7 @@ void sendValues(uint16_t offset, uint16_t packetLength, byte cmd, byte portNum)
 
   fullStatus[37] = currentStatus.idleLoad;
   fullStatus[38] = currentStatus.testOutputs;
+  fullStatus[38] |= (fpPriming << 2);
 
   fullStatus[39] = currentStatus.O2_2; //O2
   fullStatus[40] = currentStatus.baro; //Barometer value
