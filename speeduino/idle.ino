@@ -512,6 +512,15 @@ static inline void enableIdle()
   }
 }
 
+// cause a re-home of the stepper by reseting completed home steps and the 
+// current idle step. From this point, standard operation takes over to actuate
+// the stepper to the home position.
+void reHomeStepper()
+{
+  completedHomeSteps = 0;  
+  idleStepper.curIdleStep = 0;
+}
+
 #if defined(CORE_AVR) //AVR chips use the ISR for this
 ISR(TIMER4_COMPC_vect)
 #elif defined (CORE_TEENSY) || defined (CORE_STM32)

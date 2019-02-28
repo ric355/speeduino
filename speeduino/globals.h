@@ -212,6 +212,8 @@ const int16_t npage_size[11] PROGMEM = {0,288,128,288,128,288,128,240,192,192,19
 //const byte page11_size = 128;
 #define MAP_PAGE_SIZE 288
 
+#define MAIN_VOLTAGE_THRESHOLD10 70   // 7 volts is considered the threshold for going from USB power to main power.
+
 struct table3D fuelTable; //16x16 fuel map
 struct table3D ignitionTable; //16x16 ignition map
 struct table3D afrTable; //16x16 afr target map
@@ -308,7 +310,8 @@ bool clutchTrigger;
 bool previousClutchTrigger;
 volatile uint16_t toothHistory[TOOTH_LOG_BUFFER];
 volatile uint8_t compositeLogHistory[TOOTH_LOG_BUFFER];
-volatile bool fpPrimed = false; //Tracks whether or not the fuel pump priming has been completed yet
+volatile bool fpPriming = false; // tracks whether fuel pump priming is currently in progress
+unsigned long fpPrimeStartTime = 0; // micros() of the moment priming started.
 volatile unsigned int toothHistoryIndex = 0;
 volatile byte toothHistorySerialIndex = 0;
 byte primaryTriggerEdge;
@@ -323,6 +326,8 @@ byte resetControl = RESET_CONTROL_DISABLED;
 
 volatile byte TIMER_mask;
 volatile byte LOOP_TIMER;
+
+byte prevBattery10 = 0;
 
 //The status struct contains the current values for all 'live' variables
 //In current version this is 64 bytes

@@ -116,6 +116,33 @@ void (*ign7EndFunction)();
 void (*ign8StartFunction)();
 void (*ign8EndFunction)();
 
+void primeFuelPump()
+{
+  //Begin priming the fuel pump. This is turned off in the low resolution, 1s interrupt in timers.ino
+
+  //First check that the priming time is not 0
+  if(configPage2.fpPrime > 0)
+  {
+    FUEL_PUMP_ON();
+    fpPriming = true;
+    currentStatus.fuelPumpOn = true;
+    fpPrimeStartTime = micros();
+  }
+  else 
+  { 
+    fpPriming = false;
+  }
+  
+  //Perform the priming pulses. Set these to run at an arbitrary time in the future (100us). The prime pulse value is in ms*10, so need to multiple by 100 to get to uS
+  if(configPage2.primePulse > 0)
+  {
+    setFuelSchedule1(100, (unsigned long)(configPage2.primePulse * 100));
+    setFuelSchedule2(100, (unsigned long)(configPage2.primePulse * 100));
+    setFuelSchedule3(100, (unsigned long)(configPage2.primePulse * 100));
+    setFuelSchedule4(100, (unsigned long)(configPage2.primePulse * 100));
+  }
+}
+
 void setup()
 {
   pinMode(LED_BUILTIN, OUTPUT);
@@ -832,25 +859,13 @@ void setup()
       break;
   }
 
-  //Begin priming the fuel pump. This is turned off in the low resolution, 1s interrupt in timers.ino
-  //First check that the priming time is not 0
-  if(configPage2.fpPrime > 0)
-  {
-    FUEL_PUMP_ON();
-    currentStatus.fuelPumpOn = true;
-  }
-  else { fpPrimed = true; } //If the user has set 0 for the pump priming, immediately mark the priming as being completed
-  
   interrupts();
-  //Perform the priming pulses. Set these to run at an arbitrary time in the future (100us). The prime pulse value is in ms*10, so need to multiple by 100 to get to uS
-  if(configPage2.primePulse > 0)
-  {
-    setFuelSchedule1(100, (unsigned long)(configPage2.primePulse * 100));
-    setFuelSchedule2(100, (unsigned long)(configPage2.primePulse * 100));
-    setFuelSchedule3(100, (unsigned long)(configPage2.primePulse * 100));
-    setFuelSchedule4(100, (unsigned long)(configPage2.primePulse * 100));
-  }
 
+
+  // prime the fuel pump. Note this happens again if 12v is applied later 
+  // due to the initial power up being on USB.
+  
+  primeFuelPump();
 
   initialisationComplete = true;
   digitalWrite(LED_BUILTIN, HIGH);
@@ -909,6 +924,25 @@ void loop()
     else
     {
       //We reach here if the time between teeth is too great. This VERY likely means the engine has stopped
+
+      // if the input voltage transitions to greater than 7 volts while the engine
+      // is stopped then we conclude that the ignition has been switched on after
+      // USB was connected. Therefore we can do the fuel pump prime and stepper 
+      // homing functions. They may have already been done but that doesn't matter;
+      // those auxiliaries won't have operated if 12v wasn't applied so it is right that 
+      // they run again.
+      
+      if ((prevBattery10 < MAIN_VOLTAGE_THRESHOLD10) 
+          && (currentStatus.battery10 >= MAIN_VOLTAGE_THRESHOLD10)
+          && (! fpPriming)
+         )
+      {
+        primeFuelPump();
+        reHomeStepper();
+      }
+
+      prevBattery10 = currentStatus.battery10;
+
       currentStatus.RPM = 0;
       currentStatus.PW1 = 0;
       currentStatus.VE = 0;
@@ -928,7 +962,6 @@ void loop()
       ignitionCount = 0;
       ignitionOn = false;
       fuelOn = false;
-      if (fpPrimed == true) { FUEL_PUMP_OFF(); currentStatus.fuelPumpOn = false; } //Turn off the fuel pump, but only if the priming is complete
       disableIdle(); //Turn off the idle PWM
       BIT_CLEAR(currentStatus.engine, BIT_ENGINE_CRANK); //Clear cranking bit (Can otherwise get stuck 'on' even with 0 rpm)
       BIT_CLEAR(currentStatus.engine, BIT_ENGINE_WARMUP); //Same as above except for WUE

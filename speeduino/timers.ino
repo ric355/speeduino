@@ -175,11 +175,11 @@ void oneMSInterval() //Most ARM chips can simply call a function
     }
 
     //Check whether fuel pump priming is complete
-    if(fpPrimed == false)
+    if (fpPriming == true)
     {
-      if(currentStatus.secl >= configPage2.fpPrime)
+      if(micros() > fpPrimeStartTime + configPage2.fpPrime*1000000)
       {
-        fpPrimed = true; //Mark the priming as being completed
+        fpPriming = false;
         if(currentStatus.RPM == 0)
         {
           //If we reach here then the priming is complete, however only turn off the fuel pump if the engine isn't running
