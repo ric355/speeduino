@@ -940,6 +940,16 @@ void loop()
         primeFuelPump();
         reHomeStepper();
       }
+      else
+      { 
+         //Turn off the fuel pump, but only if the priming is complete
+        if (! fpPriming)
+        {
+          FUEL_PUMP_OFF(); 
+          currentStatus.fuelPumpOn = false; 
+        }
+      }
+    
 
       prevBattery10 = currentStatus.battery10;
 
